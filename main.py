@@ -1,47 +1,50 @@
-from xlrd import open_workbook
+import xlrd
+import os, sys, inspect
+import wizard
+# from wizard import *
+from pymongo import *
 
-class Arm(object):
-    def __init__(self, id, dsp_name, dsp_code, hub_code, pin_code, pptl):
-        self.id = id
-        self.dsp_name = dsp_name
-        self.dsp_code = dsp_code
-        self.hub_code = hub_code
-        self.pin_code = pin_code
-        self.pptl = pptl
 
-    def __str__(self):
-        return("Arm object:\n"
-               "  Arm_id = {0}\n"
-               "  DSPName = {1}\n"
-               "  DSPCode = {2}\n"
-               "  HubCode = {3}\n"
-               "  PinCode = {4} \n"
-               "  PPTL = {5}"
-               .format(self.id, self.dsp_name, self.dsp_code,
-                       self.hub_code, self.pin_code, self.pptl))
 
-wb = open_workbook('data.xls')
-for sheet in wb.sheets():
-    number_of_rows = sheet.nrows
-    number_of_columns = sheet.ncols
+fileLocation = "./data.xls"
+workBook = xlrd.open_workbook(fileLocation)
 
-    items = []
+sheetsNum = workBook.nsheets
+companySet = set()
 
-    rows = []
-    for row in range(1, number_of_rows):
-        values = []
-        for col in range(number_of_columns):
-            value  = (sheet.cell(row,col).value)
-            try:
-                value = str(int(value))
-            except ValueError:
-                pass
-            finally:
-                values.append(value)
-        item = Arm(*values)
-        items.append(item)
+for index in range(sheetsNum):
+	print("============================\nSheet: ", index,"\n====================================")
+	currentSheet = workBook.sheet_by_index(0)
+	# print(workBook.sheet_by_index(0).nrows)
+	rowNum = currentSheet.nrows
+	colNum = currentSheet.ncols
+	for indexRow in range(rowNum):
+		companyName = currentSheet.cell_value(indexRow,0)
+		if companyName == "企业名称":
+			continue
+		print(companyName)
+		companySet.add(companyName)
 
-for item in items:
-    print item
-    print("Accessing one single value (eg. DSPName): {0}".format(item.dsp_name))
-    print
+companyList = list(companySet)
+# Connect to mongodb
+client = MongoClient("mongodb://localhost:27017/")
+db = client.lagou
+collection = db.lagouJob
+
+for company in companyList:
+	currentCompanyJobList = []
+	print("Getting postions of:", company)
+	try:
+		currentCompanyJobList = wizard.lagou.lagouMethod(company)
+	except Exception as e:
+		print(e)
+	if len(currentCompanyJobList) == 0:
+		print("No job found in", company)
+		continue
+	print("Get", len(currentCompanyJobList), "jobs, inserting to db")
+	for job in currentCompanyJobList:
+		jobObj = job.toJson()
+		collection.insert_one(jobObj)
+# for point in pointRecordList:
+# 	point_obj = point.to_json()
+# 	collection.insert_one(point_obj)
