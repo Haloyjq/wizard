@@ -22,7 +22,7 @@ for index in range(sheetsNum):
 		companyName = currentSheet.cell_value(indexRow,0)
 		if companyName == "企业名称":
 			continue
-		print(companyName)
+		# print(companyName)
 		companySet.add(companyName)
 
 companyList = list(companySet)
@@ -31,7 +31,17 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client.lagou
 collection = db.lagouJob
 
+# Get the list for exist companies
+existCompanyList = []
+companyCursor = collection.distinct("companyName")
+for _company in companyCursor:
+	existCompanyList.append(_company)
+# print(existCompanyList)
+
 for company in companyList:
+	if company in existCompanyList:
+		print(company, "is collected already")
+		continue
 	currentCompanyJobList = []
 	print("Getting postions of:", company)
 	try:
@@ -45,6 +55,3 @@ for company in companyList:
 	for job in currentCompanyJobList:
 		jobObj = job.toJson()
 		collection.insert_one(jobObj)
-# for point in pointRecordList:
-# 	point_obj = point.to_json()
-# 	collection.insert_one(point_obj)
