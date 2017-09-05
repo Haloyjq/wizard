@@ -33,12 +33,12 @@ collection = db.lagouJob
 cursor = collection.find({"companyName":"深圳市贝利美维软件有限公司"})
 
 # Find by Job Title
-cursor = collection.find({"jobTitle":{"$regex": u"区块链"}})
+# cursor = collection.find({"jobTitle":{"$regex": u"区块链"}})
 result = decodeResult(cursor, "jobDescription")
 resultContent = "".join(result)
 nlpResult = nlp.extract_keywords(resultContent, top_k=100)
 
-f = open('data.txt', 'w')
+f = open('companyKeywords.txt', 'w')
 for weight, word in nlpResult:
     outString = str(weight) + " "+ str(word) + "\n"
     print(weight, word)
